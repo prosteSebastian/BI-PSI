@@ -38,37 +38,63 @@ aut_array_c = [32037, 29295, 13603, 29533, 21952]
 def hash(string):
 
     sum = 0
-    for i in range(0, len(string) - 1):
-        sum=+ord(string[i])
-
-    sum = (sum*1000)%2**16
+    for i in range(0, len(string)):
+        sum=sum+ord(string[i])
+        #print(ord(string[i]))
+    sum = (sum*1000) % 65536
     return sum
 
 
-def authentication():
-    pass
+def authentication(conn):
+    username = correct_message(conn)
+    hash_1 = hash(username)
+    send(conn, SERVER_KEY_REQUEST)
 
-str = ""
+    key_id = int(correct_message(conn))
+
+    has_2 = (hash_1 + aut_array_s[key_id]) % (2**16)
+
+    #conn.send(bytes(str(has_2) + END, 'ascii'))
+    send(conn, str(has_2) + END)
+    CLIENT_CONFIRMATION = correct_message(conn)
+
+    client_hash = (int(CLIENT_CONFIRMATION) - aut_array_c[key_id])%2**16
+
+    if(client_hash == hash_1 ):
+        #conn.send(bytes(SERVER_OK, 'ascii'))
+        send(conn, SERVER_OK)
+    else:
+        #conn.send(bytes(SERVER_LOGIN_FAILED, 'ascii'))
+        send(conn, SERVER_LOGIN_FAILED)
+        conn.close()
+
+global_str = ""
 
 def extract_message():
-    global str
-    lmao_END = str.find(END)
-    return_val = str[0:lmao_END]
+    global global_str
+    just_END = global_str.find(END)
+    return_val = global_str[0:just_END]
 
-    str = str[END+2:]
+    global_str = global_str[just_END + 2:]
     return return_val
 
 def correct_message(conn):
-    global str
-    while str.find(END) ==-1:
-
+    global global_str
+    while global_str.find(END) ==-1:
         data = conn.recv(BUFFER)
-        str = str + (data.decode('ascii'))
+        if (len(data) == 0):
+            exit()
+        global_str = global_str + (data.decode('ascii'))
         print("recieved:", data)
+    return extract_message()
 
 
+def send(conn, msg):
+    conn.send(bytes(msg, 'ascii'))
+    print("send messagge", msg)
 
 def main():
+    #print(hash("Mnau!"))
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR, 1)
     s.bind((IP, PORT))
@@ -76,12 +102,14 @@ def main():
     s.listen(1)
     print("listening")
     conn, addr = s.accept()
-    correct_message(conn)
     # while 420:
     #
     #
     #     conn.send(data)
+    authentication(conn)
+    send(conn,SERVER_PICK_UP)
     conn.close()
+
 
 
 if __name__ == '__main__':
