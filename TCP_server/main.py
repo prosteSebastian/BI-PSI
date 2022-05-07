@@ -218,16 +218,19 @@ def main():
     s.bind((IP, PORT))
 
     s.listen(1)
-    print("listening")
-    conn, addr = s.accept()
-    # while 420:
-    #
-    #
-    #     conn.send(data)
-    authentication(conn)
-    robot_more(conn)
-    #send(conn,SERVER_PICK_UP)
-    conn.close()
+    while 420:
+        print("listening")
+        conn, addr = s.accept()
+        pid = os.fork()
+
+        if (pid > 0):
+            conn.close()
+            continue
+        s.close()
+        authentication(conn)
+        robot_more(conn)
+        # send(conn,SERVER_PICK_UP)
+        conn.close()
 
 
 
