@@ -1,11 +1,10 @@
 import socket
+import re
 import os
 import threading
 
 
 #def hendler():
-#def robot_more():
-
 
 
 
@@ -45,12 +44,16 @@ def hash(string):
     return sum
 
 
+
 def authentication(conn):
     username = correct_message(conn)
     hash_1 = hash(username)
     send(conn, SERVER_KEY_REQUEST)
 
     key_id = int(correct_message(conn))
+
+    if(key_id>4 or key_id<0):
+        send(conn, SERVER_KEY_OUT_OF_RANGE_ERROR)
 
     has_2 = (hash_1 + aut_array_s[key_id]) % (2**16)
 
@@ -93,6 +96,121 @@ def send(conn, msg):
     conn.send(bytes(msg, 'ascii'))
     print("send messagge", msg)
 
+def reg_key_id_range(conn, key_id):
+    if(re.match(r'[0-4]]', key_id) == None):
+        send(conn, SERVER_SYNTAX_ERROR)
+        conn.close()
+        exit()
+
+
+def msg_to_cordinates(msg):
+    return list(map(int, re.findall(r'-?\d+', msg))) #fcking smart regex
+
+def turn_right(conn):
+    send(conn, SERVER_TURN_RIGHT)
+    return  msg_to_cordinates(correct_message(conn))
+
+def turn_left(conn):
+    send(conn, SERVER_TURN_LEFT)
+    return msg_to_cordinates(correct_message(conn))
+
+def move(conn):
+    send(conn, SERVER_MOVE)
+    return msg_to_cordinates(correct_message(conn))
+
+def horse_go_brr(conn):
+    turn_right(conn)
+    move(conn)
+
+    turn_left(conn)
+    move(conn)
+    move(conn)
+                            #right move left move move
+
+def robot_more(conn): #chess bitch
+    current_position = [2,2] #garbage
+
+    last_position = [3,3] #garbage
+
+    while current_position != [0,0]:
+        last_position, current_position = current_position , move(conn)
+        if (last_position == current_position):
+            horse_go_brr(conn)
+        else:
+            rotate(last_position, current_position,conn)
+    send(conn, SERVER_PICK_UP)
+    correct_message(conn)
+    send(conn, SERVER_LOGOUT)
+    conn.close()
+
+
+def rotate(last, current,conn):
+    deltaX , deltaY = current[0] - last[0], current[1] - last[1]
+    rot_1 = ""
+    rot_2 = ""
+    if(deltaX < 0):
+        rot_1 = "right"
+    elif(deltaX > 0):
+        rot_1 = "left"
+    elif(deltaY<0):
+        rot_1 = "up"
+    else:
+        rot_1 = "down"
+
+    if(current[0]>0):
+        rot_2 = "down"
+    elif(current[1]<0):
+        rot_2 = "right"
+    elif(current[0]<0):
+        rot_2 = "up"
+    else:
+        rot_2 = "left"
+
+
+
+    if(rot_1 == "right" and rot_2 =="right"):
+        return
+    elif(rot_1 == "right" and rot_2 =="left"):
+        turn_right(conn)
+        turn_right(conn)
+    elif(rot_1 == "right" and rot_2 =="up"):
+        turn_left(conn)
+    elif (rot_1 == "right" and rot_2 == "down"):
+        turn_right(conn)
+
+
+    elif (rot_1 == "left" and rot_2 == "right"):
+        turn_right(conn)
+        turn_right(conn)
+    elif (rot_1 == "left" and rot_2 == "left"):
+        return
+    elif (rot_1 == "left" and rot_2 == "up"):
+        turn_right(conn)
+    elif (rot_1 == "left" and rot_2 == "down"):
+        turn_left(conn)
+
+
+    elif (rot_1 == "up" and rot_2 == "right"):
+        turn_right(conn)
+    elif (rot_1 == "up" and rot_2 == "left"):
+        turn_left(conn)
+    elif (rot_1 == "up" and rot_2 == "up"):
+        return
+    elif (rot_1 == "up" and rot_2 == "down"):
+        turn_right(conn)
+        turn_right(conn)
+
+    elif (rot_1 == "down" and rot_2 == "right"):
+        turn_left(conn)
+    elif (rot_1 == "down" and rot_2 == "left"):
+        turn_right(conn)
+    elif (rot_1 == "down" and rot_2 == "up"):
+        turn_right(conn)
+        turn_right(conn)
+    elif (rot_1 == "down" and rot_2 == "down"):
+        return
+
+
 def main():
     #print(hash("Mnau!"))
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -107,7 +225,8 @@ def main():
     #
     #     conn.send(data)
     authentication(conn)
-    send(conn,SERVER_PICK_UP)
+    robot_more(conn)
+    #send(conn,SERVER_PICK_UP)
     conn.close()
 
 
