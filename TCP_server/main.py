@@ -214,23 +214,23 @@ def rotate(last, current, conn):
     deltaX, deltaY = current[0] - last[0], current[1] - last[1]
     rot_1 = ""
     rot_2 = ""
-    if (deltaX < 0):
+    if (deltaX > 0):
         rot_1 = "right"
-    elif (deltaX > 0):
+    elif (deltaX < 0):
         rot_1 = "left"
-    elif (deltaY < 0):
+    elif (deltaY > 0):
         rot_1 = "up"
     else:
         rot_1 = "down"
 
     if (current[0] > 0):
-        rot_2 = "down"
-    elif (current[1] < 0):
-        rot_2 = "right"
-    elif (current[0] < 0):
-        rot_2 = "up"
-    else:
         rot_2 = "left"
+    elif (current[1] < 0):
+        rot_2 = "up"
+    elif (current[0] < 0):
+        rot_2 = "right"
+    else:
+        rot_2 = "down"
 
     print(current, last, deltaX, deltaY)
     print(rot_1, rot_2)
