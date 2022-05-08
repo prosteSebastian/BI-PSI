@@ -72,13 +72,19 @@ def authentication(conn):
     send(conn, SERVER_KEY_REQUEST)
     try:
         key_id = int(correct_message(conn))
+        print("dostal jsem se sem")
+        if (key_id > 4 or key_id < 0):
+            print("jsem v cyklu na range klice")
+            send(conn, SERVER_KEY_OUT_OF_RANGE_ERROR)
+            conn.close()
+            exit()
+
     except:
         send(conn,SERVER_SYNTAX_ERROR)
         conn.close()
     #reg_key_id_range(conn,key_id)
 
-    if (key_id > 4 or key_id < 0):
-        send(conn, SERVER_KEY_OUT_OF_RANGE_ERROR)
+
 
     has_2 = (hash_1 + aut_array_s[key_id]) % (2 ** 16)
 
