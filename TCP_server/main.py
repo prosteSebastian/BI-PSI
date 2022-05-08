@@ -1,6 +1,7 @@
 import socket
 import re
 import os
+import select
 #import threading
 
 # def hendler():
@@ -132,6 +133,9 @@ def extract_message():
 def correct_message(conn):
     global global_str
     while global_str.find(END) == -1:
+        if not (conn in select.select([conn],[],[],TIMEOUT)[0]):
+           conn.close()
+           exit()
         data = conn.recv(BUFFER)
         if (len(data) == 0):
             exit()
