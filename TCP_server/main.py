@@ -40,13 +40,42 @@ def hash(string):
     sum = (sum * 1000) % 65536
     return sum
 
+def username_s(conn, username):
+    n  = len(str(username))
+    if(n>18):
+        send(conn, SERVER_SYNTAX_ERROR)
+        conn.close()
 
+def client_s(conn, client_c):
+    client_c = str(client_c)
+    if (' ' in client_c):
+
+    # if(re.match(r'[0-9]{1,2,3,4,5}',client_c)==None):
+        send(conn,SERVER_SYNTAX_ERROR)
+        conn.close()
+
+def client_n(conn, client):
+    print("jsem v funkci")
+    # if(re.match(r'[0-9]{1}|[0-9]{2}|[0-9]{3}|[0-9]{4}|[0-9]{5}|', client) == None):
+    #     print("DOSTALO SE TO SEM")
+    #     # send(conn, SERVER_SYNTAX_ERROR)
+    #     # conn.close()
+    #     re.match()
+    if(client//10000 > 9):
+        print("je vetsi")
+        send(conn,SERVER_SYNTAX_ERROR)
+        conn.close()
 def authentication(conn):
     username = correct_message(conn)
+    username_s(conn, username)
     hash_1 = hash(username)
     send(conn, SERVER_KEY_REQUEST)
-
-    key_id = int(correct_message(conn))
+    try:
+        key_id = int(correct_message(conn))
+    except:
+        send(conn,SERVER_SYNTAX_ERROR)
+        conn.close()
+    #reg_key_id_range(conn,key_id)
 
     if (key_id > 4 or key_id < 0):
         send(conn, SERVER_KEY_OUT_OF_RANGE_ERROR)
@@ -55,9 +84,21 @@ def authentication(conn):
 
     # conn.send(bytes(str(has_2) + END, 'ascii'))
     send(conn, str(has_2) + END)
-    CLIENT_CONFIRMATION = correct_message(conn)
 
-    client_hash = (int(CLIENT_CONFIRMATION) - aut_array_c[key_id]) % 2 ** 16
+    CLIENT_CONFIRMATION = correct_message(conn)
+    print("TUTUTUTUTUUTUTU:",CLIENT_CONFIRMATION)
+    client_s(conn,CLIENT_CONFIRMATION)
+    CLIENT_CONFIRMATION = int(CLIENT_CONFIRMATION)
+    print("client_n funkce")
+    client_n(conn, CLIENT_CONFIRMATION)
+
+
+    # if(CLIENT_CONFIRMATION[:-2].isdigit()==True):
+    #     send(conn,SERVER_SYNTAX_ERROR)
+    #     conn.close()
+
+
+    client_hash = (CLIENT_CONFIRMATION - aut_array_c[key_id]) % 2 ** 16
 
     if (client_hash == hash_1):
         # conn.send(bytes(SERVER_OK, 'ascii'))
@@ -66,6 +107,8 @@ def authentication(conn):
         # conn.send(bytes(SERVER_LOGIN_FAILED, 'ascii'))
         send(conn, SERVER_LOGIN_FAILED)
         conn.close()
+
+
 
 
 global_str = ""
@@ -96,16 +139,24 @@ def send(conn, msg):
     print("send messagge", msg)
 
 
-def reg_key_id_range(conn, key_id):
-    if (re.match(r'[0-4]]', key_id) == None):
-        send(conn, SERVER_SYNTAX_ERROR)
-        conn.close()
-        exit()
-
 
 def msg_to_cordinates(msg):
+    fp(msg)
     return list(map(int, re.findall(r'-?\d+', msg)))  # fcking smart regex
 
+def fp(msg):
+    msg = str(msg)
+    if('.' in msg):
+        print("JEFLOATING")
+        send(msg,msg)
+        msg.close()
+    else:
+        print("NENIFLOATING")
+    space_C = msg.count(" ")
+    if(space_C>2):
+        #print("vice mezer")
+        send(msg, msg)
+        msg.close()
 
 def turn_right(conn):
     send(conn, SERVER_TURN_RIGHT)
@@ -232,8 +283,11 @@ def main():
             conn.close()
             continue
         s.close()
-        authentication(conn)
-        robot_more(conn)
+        try:
+            authentication(conn)
+            robot_more(conn)
+        except:
+            send(conn,SERVER_SYNTAX_ERROR)
         # send(conn,SERVER_PICK_UP)
         conn.close()
 
