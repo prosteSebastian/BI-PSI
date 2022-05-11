@@ -3,11 +3,6 @@ import re
 import os
 import select
 
-# import threading
-
-# def hendler():
-
-
 IP = "127.0.0.1"  # global variables
 PORT = 4000
 BUFFER = 255
@@ -53,23 +48,16 @@ def username_s(conn, username):
 def client_s(conn, client_c):
     client_c = str(client_c)
     if (' ' in client_c):
-        # if(re.match(r'[0-9]{1,2,3,4,5}',client_c)==None):
         send(conn, SERVER_SYNTAX_ERROR)
         conn.close()
 
 
 def client_n(conn, client):
     print("jsem v funkci")
-    # if(re.match(r'[0-9]{1}|[0-9]{2}|[0-9]{3}|[0-9]{4}|[0-9]{5}|', client) == None):
-    #     print("DOSTALO SE TO SEM")
-    #     # send(conn, SERVER_SYNTAX_ERROR)
-    #     # conn.close()
-    #     re.match()
     if (client // 10000 > 9):
         print("je vetsi")
         send(conn, SERVER_SYNTAX_ERROR)
         conn.close()
-
 
 def authentication(conn):
     username = correct_message(conn,20)
@@ -79,49 +67,31 @@ def authentication(conn):
     try:
         message = correct_message(conn)
         key_id = int(message)
-
         print("dostal jsem se sem")
         if (key_id > 4 or key_id < 0):
             print("jsem v cyklu na range klice")
             send(conn, SERVER_KEY_OUT_OF_RANGE_ERROR)
             conn.close()
             exit()
-
     except:
         print("KEY_SYNTAX_ERROR")
         send(conn, SERVER_SYNTAX_ERROR)
         conn.close()
-    # reg_key_id_range(conn,key_id)
-
     has_2 = (hash_1 + aut_array_s[key_id]) % (2 ** 16)
-
-    # conn.send(bytes(str(has_2) + END, 'ascii'))
     send(conn, str(has_2) + END)
-
     CLIENT_CONFIRMATION = correct_message(conn)
-    #print("TUTUTUTUTUUTUTU:", CLIENT_CONFIRMATION)
     client_s(conn, CLIENT_CONFIRMATION)
     CLIENT_CONFIRMATION = int(CLIENT_CONFIRMATION)
-    #print("client_n funkce")
     client_n(conn, CLIENT_CONFIRMATION)
-
-    # if(CLIENT_CONFIRMATION[:-2].isdigit()==True):
-    #     send(conn,SERVER_SYNTAX_ERROR)
-    #     conn.close()
-
     client_hash = (CLIENT_CONFIRMATION - aut_array_c[key_id]) % 2 ** 16
 
     if (client_hash == hash_1):
-        # conn.send(bytes(SERVER_OK, 'ascii'))
         send(conn, SERVER_OK)
     else:
-        # conn.send(bytes(SERVER_LOGIN_FAILED, 'ascii'))
         send(conn, SERVER_LOGIN_FAILED)
         conn.close()
 
-
 global_str = ""
-
 
 def extract_message():
     global global_str
@@ -145,10 +115,7 @@ def correct_message(conn,lencheck=12):
         if not (conn in select.select([conn], [], [], tmp)[0]):
             conn.close()
             exit()
-
         data = conn.recv(BUFFER)
-        #print("LMAO DATA",data)
-
         global_str = global_str + (data.decode('ascii'))
 
         if (len(data) == 0):
@@ -159,8 +126,8 @@ def correct_message(conn,lencheck=12):
             conn.close()
             exit()
         print("recieved:", data)
-
     message = extract_message()
+
     if (message == CLIENT_RECHARGING and RECHARGING==False):
         RECHARGING  = True
         return correct_message(conn,lencheck)
@@ -173,19 +140,15 @@ def correct_message(conn,lencheck=12):
             conn.close()
             exit()
             return correct_message(conn,lencheck)
-        #message = extract_message()
     return message
-
 
 def send(conn, msg):
     conn.send(bytes(msg, 'ascii'))
     print("send messagge", msg)
 
-
 def msg_to_cordinates(msg):
     fp(msg)
     return list(map(int, re.findall(r'-?\d+', msg)))  # fcking smart regex
-
 
 def fp(msg):
     msg = str(msg)
@@ -201,23 +164,20 @@ def fp(msg):
         send(msg, msg)
         msg.close()
 
-
 def turn_right(conn):
     send(conn, SERVER_TURN_RIGHT)
     return msg_to_cordinates(correct_message(conn))
 
-
 def turn_left(conn):
     send(conn, SERVER_TURN_LEFT)
     return msg_to_cordinates(correct_message(conn))
-
 
 def move(conn):
     send(conn, SERVER_MOVE)
     return msg_to_cordinates(correct_message(conn))
 
 
-def horse_go_brr(conn):
+def horse_move(conn):
     turn_right(conn)
     move(conn)
 
@@ -227,7 +187,7 @@ def horse_go_brr(conn):
     # right move left move move
 
 
-def robot_more(conn):  # chess bitch
+def robot(conn):  # chess bitch
     current_position = [2, 2]  # garbage
 
     last_position = [3, 3]  # garbage
@@ -235,7 +195,7 @@ def robot_more(conn):  # chess bitch
     while current_position != [0, 0]:
         last_position, current_position = current_position, move(conn)
         if (last_position == current_position):
-            horse_go_brr(conn)
+            horse_move(conn)
         else:
             rotate(last_position, current_position, conn)
     send(conn, SERVER_PICK_UP)
@@ -246,8 +206,6 @@ def robot_more(conn):  # chess bitch
 
 def rotate(last, current, conn):
     deltaX, deltaY = current[0] - last[0], current[1] - last[1]
-    rot_1 = ""
-    rot_2 = ""
     if (deltaX > 0):
         rot_1 = "right"
     elif (deltaX < 0):
@@ -278,7 +236,6 @@ def rotate(last, current, conn):
     elif (rot_1 == "right" and rot_2 == "down"):
         turn_right(conn)
 
-
     elif (rot_1 == "left" and rot_2 == "right"):
         turn_right(conn)
         turn_right(conn)
@@ -288,7 +245,6 @@ def rotate(last, current, conn):
         turn_right(conn)
     elif (rot_1 == "left" and rot_2 == "down"):
         turn_left(conn)
-
 
     elif (rot_1 == "up" and rot_2 == "right"):
         turn_right(conn)
@@ -310,32 +266,25 @@ def rotate(last, current, conn):
     elif (rot_1 == "down" and rot_2 == "down"):
         return
 
-
 def main():
-    # print(hash("Mnau!"))
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((IP, PORT))
-
     s.listen(1)
-    while 420:
+    while True:
         print("listening")
         conn, addr = s.accept()
-
         pid = os.fork()
-
         if (pid > 0):
             conn.close()
             continue
         s.close()
         try:
             authentication(conn)
-            robot_more(conn)
+            robot(conn)
         except:
             send(conn, SERVER_SYNTAX_ERROR)
-        # send(conn,SERVER_PICK_UP)
         conn.close()
-
 
 if __name__ == '__main__':
     main()
