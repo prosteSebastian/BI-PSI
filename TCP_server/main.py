@@ -9,7 +9,7 @@ import select
 
 
 IP = "127.0.0.1"  # global variables
-PORT = 3999
+PORT = 4000
 BUFFER = 255
 END = "\a\b"
 
@@ -77,7 +77,9 @@ def authentication(conn):
     hash_1 = hash(username)
     send(conn, SERVER_KEY_REQUEST)
     try:
-        key_id = int(correct_message(conn))
+        message = correct_message(conn)
+        key_id = int(message)
+
         print("dostal jsem se sem")
         if (key_id > 4 or key_id < 0):
             print("jsem v cyklu na range klice")
@@ -86,6 +88,7 @@ def authentication(conn):
             exit()
 
     except:
+        print("KEY_SYNTAX_ERROR")
         send(conn, SERVER_SYNTAX_ERROR)
         conn.close()
     # reg_key_id_range(conn,key_id)
@@ -124,29 +127,54 @@ def extract_message():
     global global_str
     just_END = global_str.find(END)
     return_val = global_str[0:just_END]
-
     global_str = global_str[just_END + 2:]
     return return_val
 
+CLIENT_FULL_POWER = "FULL POWER"
+CLIENT_RECHARGING = "RECHARGING"
+RECHARGING = False
 
 def correct_message(conn,lencheck=12):
-
     global global_str
+    global RECHARGING
     while global_str.find(END) == -1:
-        if not (conn in select.select([conn], [], [], TIMEOUT)[0]):
+        if (RECHARGING):
+            tmp = TIMEOUT_RECHARGING
+        else:
+            tmp = TIMEOUT
+        if not (conn in select.select([conn], [], [], tmp)[0]):
             conn.close()
             exit()
+
         data = conn.recv(BUFFER)
+        #print("LMAO DATA",data)
+
+        global_str = global_str + (data.decode('ascii'))
+
         if (len(data) == 0):
             exit()
-        elif(lencheck<=len(data) and data.decode('ascii').find(END) ==-1):
-            send(conn,SERVER_SYNTAX_ERROR)
+
+        elif (lencheck <= len(data) and data.decode('ascii').find(END) == -1 and CLIENT_RECHARGING.find(global_str) == -1):
+            send(conn, SERVER_SYNTAX_ERROR)
             conn.close()
             exit()
-        global_str = global_str + (data.decode('ascii'))
         print("recieved:", data)
 
-    return extract_message()
+    message = extract_message()
+    if (message == CLIENT_RECHARGING and RECHARGING==False):
+        RECHARGING  = True
+        return correct_message(conn,lencheck)
+    elif (RECHARGING == True):
+        if (message == CLIENT_FULL_POWER):
+            RECHARGING = False
+            return correct_message(conn,lencheck)
+        else:
+            send(conn, SERVER_LOGIC_ERROR)
+            conn.close()
+            exit()
+            return correct_message(conn,lencheck)
+        #message = extract_message()
+    return message
 
 
 def send(conn, msg):
