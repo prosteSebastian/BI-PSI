@@ -2,7 +2,8 @@ import socket
 import re
 import os
 import select
-#import threading
+
+# import threading
 
 # def hendler():
 
@@ -41,19 +42,21 @@ def hash(string):
     sum = (sum * 1000) % 65536
     return sum
 
+
 def username_s(conn, username):
-    n  = len(str(username))
-    if(n>18):
+    n = len(str(username))
+    if (n > 18):
         send(conn, SERVER_SYNTAX_ERROR)
         conn.close()
+
 
 def client_s(conn, client_c):
     client_c = str(client_c)
     if (' ' in client_c):
-
-    # if(re.match(r'[0-9]{1,2,3,4,5}',client_c)==None):
-        send(conn,SERVER_SYNTAX_ERROR)
+        # if(re.match(r'[0-9]{1,2,3,4,5}',client_c)==None):
+        send(conn, SERVER_SYNTAX_ERROR)
         conn.close()
+
 
 def client_n(conn, client):
     print("jsem v funkci")
@@ -62,12 +65,14 @@ def client_n(conn, client):
     #     # send(conn, SERVER_SYNTAX_ERROR)
     #     # conn.close()
     #     re.match()
-    if(client//10000 > 9):
+    if (client // 10000 > 9):
         print("je vetsi")
-        send(conn,SERVER_SYNTAX_ERROR)
+        send(conn, SERVER_SYNTAX_ERROR)
         conn.close()
+
+
 def authentication(conn):
-    username = correct_message(conn)
+    username = correct_message(conn,20)
     username_s(conn, username)
     hash_1 = hash(username)
     send(conn, SERVER_KEY_REQUEST)
@@ -81,11 +86,9 @@ def authentication(conn):
             exit()
 
     except:
-        send(conn,SERVER_SYNTAX_ERROR)
+        send(conn, SERVER_SYNTAX_ERROR)
         conn.close()
-    #reg_key_id_range(conn,key_id)
-
-
+    # reg_key_id_range(conn,key_id)
 
     has_2 = (hash_1 + aut_array_s[key_id]) % (2 ** 16)
 
@@ -93,17 +96,15 @@ def authentication(conn):
     send(conn, str(has_2) + END)
 
     CLIENT_CONFIRMATION = correct_message(conn)
-    print("TUTUTUTUTUUTUTU:",CLIENT_CONFIRMATION)
-    client_s(conn,CLIENT_CONFIRMATION)
+    #print("TUTUTUTUTUUTUTU:", CLIENT_CONFIRMATION)
+    client_s(conn, CLIENT_CONFIRMATION)
     CLIENT_CONFIRMATION = int(CLIENT_CONFIRMATION)
-    print("client_n funkce")
+    #print("client_n funkce")
     client_n(conn, CLIENT_CONFIRMATION)
-
 
     # if(CLIENT_CONFIRMATION[:-2].isdigit()==True):
     #     send(conn,SERVER_SYNTAX_ERROR)
     #     conn.close()
-
 
     client_hash = (CLIENT_CONFIRMATION - aut_array_c[key_id]) % 2 ** 16
 
@@ -114,8 +115,6 @@ def authentication(conn):
         # conn.send(bytes(SERVER_LOGIN_FAILED, 'ascii'))
         send(conn, SERVER_LOGIN_FAILED)
         conn.close()
-
-
 
 
 global_str = ""
@@ -130,17 +129,23 @@ def extract_message():
     return return_val
 
 
-def correct_message(conn):
+def correct_message(conn,lencheck=12):
+
     global global_str
     while global_str.find(END) == -1:
-        if not (conn in select.select([conn],[],[],TIMEOUT)[0]):
-           conn.close()
-           exit()
+        if not (conn in select.select([conn], [], [], TIMEOUT)[0]):
+            conn.close()
+            exit()
         data = conn.recv(BUFFER)
         if (len(data) == 0):
             exit()
+        elif(lencheck<=len(data) and data.decode('ascii').find(END) ==-1):
+            send(conn,SERVER_SYNTAX_ERROR)
+            conn.close()
+            exit()
         global_str = global_str + (data.decode('ascii'))
         print("recieved:", data)
+
     return extract_message()
 
 
@@ -149,24 +154,25 @@ def send(conn, msg):
     print("send messagge", msg)
 
 
-
 def msg_to_cordinates(msg):
     fp(msg)
     return list(map(int, re.findall(r'-?\d+', msg)))  # fcking smart regex
 
+
 def fp(msg):
     msg = str(msg)
-    if('.' in msg):
+    if ('.' in msg):
         print("JEFLOATING")
-        send(msg,msg)
+        send(msg, msg)
         msg.close()
     else:
         print("NENIFLOATING")
     space_C = msg.count(" ")
-    if(space_C>2):
-        #print("vice mezer")
+    if (space_C > 2):
+        # print("vice mezer")
         send(msg, msg)
         msg.close()
+
 
 def turn_right(conn):
     send(conn, SERVER_TURN_RIGHT)
@@ -205,7 +211,7 @@ def robot_more(conn):  # chess bitch
         else:
             rotate(last_position, current_position, conn)
     send(conn, SERVER_PICK_UP)
-    correct_message(conn)
+    correct_message(conn,100)
     send(conn, SERVER_LOGOUT)
     conn.close()
 
@@ -287,6 +293,7 @@ def main():
     while 420:
         print("listening")
         conn, addr = s.accept()
+
         pid = os.fork()
 
         if (pid > 0):
@@ -297,7 +304,7 @@ def main():
             authentication(conn)
             robot_more(conn)
         except:
-            send(conn,SERVER_SYNTAX_ERROR)
+            send(conn, SERVER_SYNTAX_ERROR)
         # send(conn,SERVER_PICK_UP)
         conn.close()
 
